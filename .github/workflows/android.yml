@@ -31,10 +31,19 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    # assembleDebug (not `build`) so we skip the lint tasks — the chrome-tabs module
-    # fails lintDebug on the ExpiredTargetSdkVersion advisory, which is irrelevant here.
-    - name: Build debug APK
-      run: ./gradlew :app:assembleDebug --stacktrace
+    - name: Decode release keystore
+      run: echo "${{ secrets.STRYKER_KEYSTORE_B64 }}" | base64 -d > "$RUNNER_TEMP/stryker.jks"
+
+    # assembleDebug/assembleRelease (not `build`) so we skip the lint tasks — the
+    # chrome-tabs module fails lintDebug on the ExpiredTargetSdkVersion advisory, which
+    # is irrelevant here. The release build is signed from the STRYKER_KEYSTORE_B64 secret.
+    - name: Build debug + release APKs
+      env:
+        STRYKER_RELEASE_STORE_FILE: ${{ runner.temp }}/stryker.jks
+        STRYKER_RELEASE_STORE_PASSWORD: strykerapp
+        STRYKER_RELEASE_KEY_ALIAS: stryker
+        STRYKER_RELEASE_KEY_PASSWORD: strykerapp
+      run: ./gradlew :app:assembleDebug :app:assembleRelease --stacktrace
 
     - name: Upload debug APK
       uses: actions/upload-artifact@v4
@@ -42,3 +51,10 @@ jobs:
         name: strykerapp-debug-apk
         path: app/build/outputs/apk/debug/*.apk
         retention-days: 30
+
+    - name: Upload release APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: strykerapp-release-apk
+        path: app/build/outputs/apk/release/*.apk
+        retention-days: 90
