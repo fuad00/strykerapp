@@ -624,7 +624,10 @@ public class WiFIAdapter extends RecyclerView.Adapter<WiFIAdapter.ViewHolder> {
                     boolean monitor2 = true;
 
                     ArrayList<String> clients = new ArrayList<>();
-                    if (wlandeauth.contains("wlan0")){deauth = false;}
+                    // A single internal card (wlan0) CAN capture and deauth at the same time,
+                    // exactly like wifite: airodump and aireplay share one monitor interface
+                    // locked to the AP's channel. The old `deauth = false` here forced passive
+                    // mode assuming you need a second card — not true on the qcacld monitor kernel.
                     sendEvent("Enabling monitor mode...");
                     if (deauth){
                         monitor = core.monitorManager.enableMonitorMode(wlanscan, String.valueOf(network.getChannel()));
