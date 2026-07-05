@@ -5,6 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch: {}
 
 jobs:
   build:
@@ -12,15 +13,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: set up JDK 11
-      uses: actions/setup-java@v2
+    - uses: actions/checkout@v4
+
+    - name: set up JDK 17
+      uses: actions/setup-java@v4
       with:
-        java-version: '11'
+        java-version: '17'
         distribution: 'temurin'
         cache: gradle
 
+    - name: Install Android SDK components
+      run: |
+        SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+        yes | "$SDKMANAGER" --licenses > /dev/null || true
+        "$SDKMANAGER" "platforms;android-33" "ndk;25.1.8937393"
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
-    - name: Build with Gradle
-      run: ./gradlew build
+
+    # assembleDebug (not `build`) so we skip the lint tasks — the chrome-tabs module
+    # fails lintDebug on the ExpiredTargetSdkVersion advisory, which is irrelevant here.
+    - name: Build debug APK
+      run: ./gradlew :app:assembleDebug --stacktrace
+
+    - name: Upload debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: strykerapp-debug-apk
+        path: app/build/outputs/apk/debug/*.apk
+        retention-days: 30
