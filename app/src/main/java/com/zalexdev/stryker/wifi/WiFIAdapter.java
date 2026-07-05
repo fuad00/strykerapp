@@ -1126,6 +1126,12 @@ public class WiFIAdapter extends RecyclerView.Adapter<WiFIAdapter.ViewHolder> {
                 outputtext.append("Internal wifi adapter (wlan0) does not support packet injection! Please use external wifi adapter!\n");
             }
             if (ok) {
+                 // qcacld / FullMAC (e.g. OnePlus internal card): aireplay-ng can't switch
+                 // the channel itself, so the card sits on the wrong channel and reports
+                 // "No such BSSID available" (which we mis-read as "card does not support
+                 // deauthing"). Pin the card to the target AP's channel with iw (nl80211,
+                 // which the driver honours) first. Runs in the chroot with full caps.
+                 core.customChrootCommand("iw dev " + core.getDeauthInterface() + " set channel " + network.getChannel());
                  deauther = new AdvancedProcess(activity, context, "aireplay-ng --ignore-negative-one -0 0 -a  " + network.getMac() + " " + core.getDeauthInterface(), true) {
                     @Override
                     public void onFinished(ArrayList<String> outputList) {
