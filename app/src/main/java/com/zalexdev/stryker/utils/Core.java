@@ -1153,7 +1153,6 @@ public class Core {
                                         + "';\"");}
     }
 
-
     public ArrayList<String> getInterfacesList(){
         ArrayList<String> result = new ArrayList<>();
         ArrayList<String> temp = customChrootCommand("iw dev | grep 'Interface\\|type' | sed -r 's/type//g' | sed -r 's/Interface//g' | sed 'N;s/\\n/,/'",true);
